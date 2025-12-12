@@ -144,12 +144,22 @@ def load_dataset(run: str, step: str | int) -> xr.Dataset:
 
     # 1. Verificar si ya existe en /tmp para caché simple
     if not os.path.exists(local_path):
-        logger.info("Descargando %s -> %s", key, local_path)
+        import uuid
+        # Descarga atómica: Descargar a un archivo temporal único y luego renombrar
+        # Esto evita que otro request intente leer el archivo mientras se está descargando (race condition)
+        temp_download_path = f"{local_path}.{uuid.uuid4()}.tmp"
+        
+        logger.info("Descargando %s -> %s", key, temp_download_path)
         try:
-            s3_client.download_file(BUCKET, key, local_path)
+            s3_client.download_file(BUCKET, key, temp_download_path)
+            # Rename atómico (en POSIX)
+            os.rename(temp_download_path, local_path)
+            logger.info("Descarga completada y archivo renombrado a: %s", local_path)
         except Exception as exc:
             logger.error("Error descargando desde S3: %s", exc)
-            # Mapear error de S3 a FileNotFoundError si es 404
+            # Limpiar archivo temporal si falló
+            if os.path.exists(temp_download_path):
+                os.remove(temp_download_path)
             raise FileNotFoundError(f"No se pudo descargar {s3_uri}: {exc}")
     else:
         logger.info("Usando caché local: %s", local_path)
