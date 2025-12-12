@@ -177,12 +177,14 @@ def load_dataset(run: str, step: str | int) -> xr.Dataset:
         raise ValueError("El archivo NetCDF descargado está vacío o corrupto.")
 
     # 2. Abrir archivo local
-    try:
-        # Según debug_s3.py, 'h5netcdf' funcionó y 'netcdf4' falló con HDF error.
-        # Volvemos a h5netcdf como primario.
-        # FIX CRITICO: cache=False para evitar problemas de threading/concurrency con HDF5 en Uvicorn
         ds = xr.open_dataset(local_path, engine="h5netcdf", cache=False)
-        logger.info("Dataset abierto correctamente con engine='h5netcdf'.")
+        
+        # Estandarizacion de variables: Rename 'var' -> 'sti' if present
+        if "sti" not in ds.data_vars and "var" in ds.data_vars:
+            logger.info("Normalizando variable: 'var' -> 'sti'")
+            ds = ds.rename({"var": "sti"})
+            
+        logger.info("Dataset abierto y normalizado correctamente.")
         return ds
     except Exception as exc:
         logger.error("Error abriendo NetCDF local %s con h5netcdf: %s", local_path, exc)
