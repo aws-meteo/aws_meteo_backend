@@ -154,18 +154,37 @@ def load_dataset(run: str, step: str | int) -> xr.Dataset:
     else:
         logger.info("Usando caché local: %s", local_path)
 
-    # 2. Abrir archivo local
-    try:
-        # Abrimos con engine="h5netcdf" o "netcdf4" ahora que es local
-        ds = xr.open_dataset(local_path, engine="h5netcdf")
-        logger.info("Dataset abierto correctamente.")
-        return ds
-    except Exception as exc:
-        logger.error("Error abriendo NetCDF local %s: %s", local_path, exc)
-        # Si está corrupto, intentar borrarlo para la próxima
+    # Validar tamaño del archivo (sanity check)
+    file_size = os.path.getsize(local_path)
+    logger.info("Tamaño del archivo local: %s bytes", file_size)
+    if file_size < 100:
+        logger.error("El archivo descargado es sospechosamente pequeño (<100 bytes). Posible error de XML de S3 guardado como .nc")
+        # Borrar para reintentar luego
         try:
             os.remove(local_path)
         except:
             pass
-        raise
+        raise ValueError("El archivo NetCDF descargado está vacío o corrupto.")
+
+    # 2. Abrir archivo local
+    try:
+        # Pangu/ERA5 suelen ser NetCDF4 puros. H5NetCDF a veces falla con algunos filtros.
+        # Probamos 'netcdf4' primero que es el standard robusto.
+        ds = xr.open_dataset(local_path, engine="netcdf4")
+        logger.info("Dataset abierto correctamente con engine='netcdf4'.")
+        return ds
+    except Exception as exc:
+        logger.warning("Fallo con engine='netcdf4': %s. Reintentando con 'h5netcdf'...", exc)
+        try:
+             ds = xr.open_dataset(local_path, engine="h5netcdf")
+             logger.info("Dataset abierto correctamente con engine='h5netcdf'.")
+             return ds
+        except Exception as exc2:
+            logger.error("Error abriendo NetCDF local %s con ambos engines. Error: %s", local_path, exc2)
+            # Si está corrupto, intentar borrarlo para la próxima
+            try:
+                os.remove(local_path)
+            except:
+                pass
+            raise
 
