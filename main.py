@@ -76,6 +76,7 @@ def get_summary(run: str, step: str):
     - variables
     - min/max/mean de la variable 'sti'
     """
+    ds = None
     try:
         ds = load_dataset(run, step)
     except FileNotFoundError:
@@ -91,10 +92,11 @@ def get_summary(run: str, step: str):
         )
 
     try:
+        # La variable ya viene normalizada como 'sti' desde s3_helpers
         if "sti" not in ds.data_vars:
-            raise HTTPException(
+             raise HTTPException(
                 status_code=500,
-                detail="Variable 'sti' no encontrada en el dataset",
+                detail=f"Variable 'sti' no encontrada. Vars: {list(ds.data_vars)}",
             )
 
         sti = ds["sti"]
@@ -114,7 +116,8 @@ def get_summary(run: str, step: str):
         return JSONResponse(summary)
     finally:
         # Nos aseguramos de cerrar el Dataset incluso si algo falla
-        ds.close()
+        if ds:
+            ds.close()
 
 
 @app.get("/sti/{run}/{step}/subset")
