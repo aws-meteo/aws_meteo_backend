@@ -133,6 +133,7 @@ def get_subset(
     Nota: asumimos esquema tipo ERA5 con coords "latitude" y "longitude".
     Muchas veces latitude viene de 90 -> -90, por eso usamos slice(lat_max, lat_min).
     """
+    ds = None
     try:
         ds = load_dataset(run, step)
     except FileNotFoundError:
@@ -150,17 +151,8 @@ def get_subset(
         )
 
     try:
-        # Fix: El archivo trae la variable como 'var' en lugar de 'sti' (según debug script)
-        if "sti" not in ds.data_vars:
-            if "var" in ds.data_vars:
-                print("DEBUG: Renaming variable 'var' to 'sti'")
-                ds = ds.rename({"var": "sti"})
-            else:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Variable 'sti' (o 'var') no encontrada. Variables: {list(ds.data_vars)}",
-                )
-
+        # Note: variable normalization (var->sti) is now handled in s3_helpers.load_dataset
+        
         # Recorte Geográfico
         # DEBUG: User requested "verlo todo" (see everything). Bypassing subset for debugging.
         print(f"DEBUG: Dataset loaded. Dimensions: {ds.dims}, Coords: {ds.coords}")
@@ -168,28 +160,6 @@ def get_subset(
         # Bypass subset logic - return full dataset (files are small ~400KB)
         sub = ds["sti"]
         
-        # try:
-        #     # 1. Intentar recorte directo (coordenadas negativas, ej: -75)
-        #     sub = ds["sti"].sel(
-        #         latitude=slice(lat_max, lat_min),
-        #         longitude=slice(lon_min, lon_max),
-        #     )
-        #     
-        #     # 2. Si vacío, intentar formato 0-360 (ej: 285)
-        #     if sub.size == 0:
-        #         lmin_360 = lon_min % 360
-        #         lmax_360 = lon_max % 360
-        #         sub = ds["sti"].sel(
-        #             latitude=slice(lat_max, lat_min),
-        #             longitude=slice(lmin_360, lmax_360),
-        #         )
-        # except Exception as e:
-        #     print(f"DEBUG Error in subset: {e}")
-        #     raise HTTPException(
-        #         status_code=400,
-        #         detail=f"Error en recorte lat/lon: {e}",
-        #     )
-
         # Flattening logic for frontend (Leaflet Heatmap)
         lons_in = sub["longitude"].values
         lats_in = sub["latitude"].values
@@ -210,4 +180,5 @@ def get_subset(
             "sti": flat_sti,
         }
     finally:
-        ds.close()
+        if ds:
+            ds.close()
