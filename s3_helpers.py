@@ -157,6 +157,12 @@ def pick_data_var(ds: xr.Dataset, preferred: str = "sti") -> str:
         
     raise KeyError(f"Variable '{preferred}' no encontrada y no se pudo deducir una única variable. Disponibles: {list(ds.data_vars)}")
 
+# --------------------------------------------------------------------
+# Global lock para HDF5 (Library-level safety)
+# --------------------------------------------------------------------
+import threading
+_HDF5_LOCK = threading.Lock()
+
 def load_dataset(run: str, step: str | int) -> xr.Dataset:
     """
     Descarga robusta y thread-safe de NetCDF desde S3.
@@ -183,8 +189,10 @@ def load_dataset(run: str, step: str | int) -> xr.Dataset:
             try:
                 # Intento rápido de apertura para validar integridad
                 # cache=False es CRÍTICO para h5netcdf + uvicorn
-                with xr.open_dataset(final_path, engine="h5netcdf", cache=False) as ds_check:
-                    pass 
+                # GLOBAL LOCK required for any HDF5 op
+                with _HDF5_LOCK:
+                    with xr.open_dataset(final_path, engine="h5netcdf", cache=False) as ds_check:
+                        pass 
                 logger.info(f"Cache HIT y fichero válido: {final_path}")
             except Exception as e:
                 logger.warning(f"Cache corrupto detectado en {final_path} ({e}). Borrando para re-descargar.")
@@ -206,9 +214,10 @@ def load_dataset(run: str, step: str | int) -> xr.Dataset:
                 if os.path.getsize(tmp_download_path) < 100:
                     raise ValueError("El archivo descargado es demasiado pequeño (<100B).")
                 
-                # Prueba de fuego con Xarray
-                with xr.open_dataset(tmp_download_path, engine="h5netcdf", cache=False) as ds_test:
-                    pass
+                # Prueba de fuego con Xarray (+ Global Lock)
+                with _HDF5_LOCK:
+                    with xr.open_dataset(tmp_download_path, engine="h5netcdf", cache=False) as ds_test:
+                        pass
                 
                 # 3. Rename atómico: Esto es lo que "publica" el archivo
                 # os.replace es atómico en POSIX y Windows (Py3.3+)
@@ -233,13 +242,15 @@ def load_dataset(run: str, step: str | int) -> xr.Dataset:
     # pero cache=False nos da handles distintos.
     # Si aún así falla, el problema es de la lib HDF5 a nivel C global.
     try:
-        ds = xr.open_dataset(final_path, engine="h5netcdf", cache=False)
+        # Importante: El lock aquí también
+        with _HDF5_LOCK:
+            ds = xr.open_dataset(final_path, engine="h5netcdf", cache=False)
         
-        # 5. Normalizar variable
-        target_var = pick_data_var(ds, preferred="sti")
-        if target_var != "sti":
-            logger.info(f"Renombrando variable '{target_var}' -> 'sti'")
-            ds = ds.rename({target_var: "sti"})
+            # 5. Normalizar variable (dentro del lock es más seguro si hace lazy load de metadatos)
+            target_var = pick_data_var(ds, preferred="sti")
+            if target_var != "sti":
+                logger.info(f"Renombrando variable '{target_var}' -> 'sti'")
+                ds = ds.rename({target_var: "sti"})
             
         return ds
 
