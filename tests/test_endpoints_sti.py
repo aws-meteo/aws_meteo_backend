@@ -1,31 +1,19 @@
 import sys
-from unittest.mock import MagicMock
 import unittest
+from unittest.mock import MagicMock, patch
 import numpy as np
 import os
 
 # Add project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-# Mock s3_helpers BEFORE importing app or main
-mock_s3 = MagicMock()
-sys.modules["s3_helpers"] = mock_s3
-
-# Mock api_aws.routers.forecast to avoid importing lib/matplotlib
-mock_router = MagicMock()
-sys.modules["routers"] = MagicMock()
-sys.modules["routers.forecast"] = mock_router
-mock_router.router = MagicMock()
-
-# Configure mocks
-mock_s3.list_runs.return_value = ["2025010100"]
-mock_s3.list_steps.return_value = ["000"]
-
-# Import get_subset directly
+# Import imported get_subset. Since we are patching "main.load_dataset", 
+# we don't worry about previous imports of s3_helpers.
 from main import get_subset
 
 class TestSTIEndpoint(unittest.TestCase):
-    def test_get_subset_flattened_structure(self):
+    @patch("main.load_dataset")
+    def test_get_subset_flattened_structure(self, mock_load_dataset):
         """
         Verify that get_subset returns flattened 1D arrays
         for latitudes, longitudes, and sti, and that they have equal length.
@@ -37,27 +25,25 @@ class TestSTIEndpoint(unittest.TestCase):
         # Simulate a 2x2 grid
         # Lats: [-33.0, -33.25]
         # Lons: [-71.0, -70.75]
-        # Expected output size: 4
-        
         lats_input = np.array([-33.0, -33.25])
         lons_input = np.array([-71.0, -70.75])
-        # Values as (2,2) matrix
         sti_values = np.array([[0.1, 0.2], [0.3, 0.4]])
         
-        # Mock ds.data_vars to satisfy "if 'sti' not in ds.data_vars" check
         mock_ds.data_vars = ["sti"]
 
+        # Setup mock_sub behavior
         mock_sub.__contains__.side_effect = lambda key: key in ["latitude", "longitude"]
-        # Mock .values access for lat/lon/sti
         mock_sub.values = sti_values
         mock_sub.__getitem__.side_effect = lambda key: MagicMock(values=lats_input) if key == "latitude" else MagicMock(values=lons_input)
         
-        # Mock ds['sti'].sel(...) -> returns mock_sub
-        mock_ds.__getitem__.return_value.sel.return_value = mock_sub
-        mock_s3.load_dataset.return_value = mock_ds
-
+        # Mock ds['sti'] to return mock_sub
+        mock_ds.__getitem__.return_value = mock_sub
+        
+        # Configure the patch
+        # Note: get_subset calls load_dataset(run, step)
+        mock_load_dataset.return_value = mock_ds
+    
         # 2. Call Function directly
-        # get_subset(run, step, lat_min, lat_max, lon_min, lon_max)
         data = get_subset(
             run="2025010100",
             step="000",
@@ -76,7 +62,7 @@ class TestSTIEndpoint(unittest.TestCase):
         lons = data["longitudes"]
         sti = data["sti"]
         
-        # Check types (should be lists, not dicts or nesting)
+        # Check types
         self.assertIsInstance(lats, list)
         self.assertIsInstance(lons, list)
         self.assertIsInstance(sti, list)
@@ -87,26 +73,13 @@ class TestSTIEndpoint(unittest.TestCase):
         self.assertEqual(len(lons), expected_len)
         self.assertEqual(len(sti), expected_len)
         
-        # Check values (flattened structure)
-        # meshgrid with indexing='xy' (default for numpy)
-        # For lats=[-33.0, -33.25], lons=[-71.0, -70.75]
-        # lat_grid:
-        # [[-33.0,  -33.0],
-        #  [-33.25, -33.25]] -> flatten -> [-33.0, -33.0, -33.25, -33.25]
-        # lon_grid:
-        # [[-71.0,  -70.75],
-        #  [-71.0,  -70.75]] -> flatten -> [-71.0, -70.75, -71.0, -70.75]
-        # sti (row-major flatten): [0.1, 0.2, 0.3, 0.4]
-        
-        print(f"\nLats received: {lats}")
-        print(f"Lons received: {lons}")
-        print(f"STI received: {sti}")
-
+        # Check values
         self.assertEqual(lats, [-33.0, -33.0, -33.25, -33.25])
         self.assertEqual(lons, [-71.0, -70.75, -71.0, -70.75])
         self.assertEqual(sti, [0.1, 0.2, 0.3, 0.4])
 
-        # Clean up mock
+        # Verify load_dataset was called
+        mock_load_dataset.assert_called_with("2025010100", "000")
         mock_ds.close.assert_called()
 
 if __name__ == "__main__":

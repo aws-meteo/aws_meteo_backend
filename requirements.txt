@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+boto3
+xarray
+fsspec
+s3fs
+h5netcdf
+numpy
+requests
+pandas
+filelock
+cachetools
+dask
+httpx

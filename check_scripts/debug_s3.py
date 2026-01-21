@@ -16,10 +16,12 @@ def check_env():
         print("h5netcdf NOT installed")
 
     try:
-        import netCDF4
-        print("netCDF4 installed:", netCDF4.__version__)
+        # import netCDF4
+        # print("netCDF4 installed:", netCDF4.__version__)
+        pass
     except ImportError:
-        print("netCDF4 NOT installed (CRITICAL if engine='netcdf4')")
+        # print("netCDF4 NOT installed (CRITICAL if engine='netcdf4')")
+        pass
 
 def download_file():
     print(f"\n--- 2. Downloading {KEY} ---")

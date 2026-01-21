@@ -144,7 +144,6 @@ def pick_data_var(ds: xr.Dataset, preferred: str = "sti") -> str:
         return preferred
     
     # Filtrar coordenadas o variables auxiliares que a veces xarray marca como data_vars
-    # (aunque netcdf4 suele ser limpio). 
     # Estrategia simple: si "var" está, usémosla.
     if "var" in ds.data_vars:
         return "var"

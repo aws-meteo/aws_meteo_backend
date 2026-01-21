@@ -24,8 +24,8 @@ TIME_DIM = "valid_time"
 LAT = "latitude"
 LON = "longitude"
 
-ENGINE_PRIMARY = "netcdf4"
-ENGINE_FALLBACK = "h5netcdf"
+ENGINE_PRIMARY = "h5netcdf"
+ENGINE_FALLBACK = "scipy"  # Fallback for NetCDF3 if h5netcdf fails (though h5netcdf often handles only NC4)
 
 # If dataset is "small enough", load into RAM and close files => avoids open handles & read races later
 EAGER_LOAD_BYTES_THRESHOLD = 256 * 1024 * 1024  # 256 MB

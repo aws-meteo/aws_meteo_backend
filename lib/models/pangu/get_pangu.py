@@ -3,7 +3,7 @@ import subprocess
 import sys
 import shutil
 from pathlib import Path
-import gdown   # <--- necesitas: pip install gdown
+# import gdown   # <--- eliminada dependencia
 
 
 REPO_URL = "https://github.com/198808xc/Pangu-Weather.git"
@@ -45,14 +45,11 @@ def download_weights_if_missing(model_path: Path = MODEL_PATH, url: str = MODEL_
         return
 
     print(f"Descargando pesos desde Google Drive...")
-    try:
-        gdown.download(url, str(model_path), fuzzy=True, quiet=False)
-    except Exception as e:
-        print("Error descargando los pesos:", e)
-        sys.exit(1)
-
-    print(f"Pesos guardados en: {model_path.resolve()}")
-    print(f"Tamaño: {model_path.stat().st_size / 1e9:.3f} GB")
+    # gdown.download(url, str(model_path), fuzzy=True, quiet=False)
+    print("ERROR: gdown ha sido eliminado. Por favor descarga el modelo manualmente de:")
+    print(url)
+    print(f"y guárdalo en: {model_path.resolve()}")
+    sys.exit(1)
 
 
 if __name__ == "__main__":

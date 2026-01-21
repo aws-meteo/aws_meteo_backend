@@ -4,7 +4,7 @@ import os, pathlib
 import numpy as np
 import xarray as xr
 import pandas as pd # Import pandas
-import cdsapi
+# import cdsapi
 
 # 1) Parámetros y rutas
 CACHE_DIR = "tmp"
@@ -19,25 +19,10 @@ AREA_CHILE = [-17, -76, -56, -66]  # [N, W, S, E] en grados, longitudes en −18
 
 def cds_retrieve_monthly_t2m_years(outfile: str, years: list[str], months: list[str]):
     """
-    Descarga ERA5 monthly means (T2M) con cdsapi para el dominio de Chile y guarda en 'outfile'.
+    STUB: Descarga deshabilitada en version backend light.
     """
-    if os.path.exists(outfile):
-        print(f"[SKIP] Ya existe: {outfile}")
-        return
-
-    c = cdsapi.Client()
-    req = {
-        "product_type": "monthly_averaged_reanalysis",
-        "format": "netcdf",
-        "variable": ["2m_temperature"],
-        "year": years,
-        "month": months,
-        "time": "00:00",
-        "area": AREA_CHILE,  # [North, West, South, East] con longitudes −180..180
-    }
-    print(f"[CDS] Solicitando {len(years)} years x {len(months)} months -> {outfile}")
-    c.retrieve("reanalysis-era5-single-levels-monthly-means", req, outfile)
-    print(f"[OK] Guardado: {outfile}")
+    print(f"[ERROR] Intento de descarga CDS para {outfile}. CDSAPI no disponible.")
+    raise NotImplementedError("CDSAPI eliminado. No se pueden descargar datos nuevos.")
 
 def _normalize_coords(ds: xr.Dataset) -> xr.Dataset:
     ren = {}

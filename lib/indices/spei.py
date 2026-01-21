@@ -22,8 +22,10 @@ def km2deg_lon(km: float, lat_deg: float) -> float:
 def _safe_open_nc(path: str) -> xr.Dataset:
     """Abre NetCDF robustamente."""
     try:
-        return xr.open_dataset(path, engine="netcdf4", decode_times=False)
+        return xr.open_dataset(path, engine="h5netcdf", decode_times=False)
     except Exception:
+        # Fallback to scipy implies older format, but usually h5netcdf works for NetCDF4.
+        # Scipy works for NetCDF3. We keep it as safe fallback if h5netcdf fails on NC3.
         return xr.open_dataset(path, engine="scipy", decode_times=False)
 
 def _download_to_tmp(url: str, retries: int = 3, timeout: int = 60) -> str:

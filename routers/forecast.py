@@ -25,15 +25,17 @@ class ForecastResponse(BaseModel):
 
 from s3_helpers import list_runs, list_steps, load_dataset
 # We keep s3_helpers imports to not break if we revert, but we won't use them for the primary flow
-from lib.indices.construct import OUT_ALL, build_era5_t2m_monthly_chile
+# from lib.indices.construct import OUT_ALL, build_era5_t2m_monthly_chile  <-- REMOVED (cdsapi dependency)
+# from lib.tests.conftest_climate import generate_mock_era5_monthly, generate_mock_climatology <-- REMOVED (potential heavy deps)
 import os
 import xarray as xr
 
-# Instantiate mocks for Climatology AND ERA5 (fallback)
-_mock_clim_gen = generate_mock_climatology()
-_mock_era5_gen = generate_mock_era5_monthly()
-DATASET_CLIM = _mock_clim_gen()
-DATASET_ERA5 = _mock_era5_gen()
+# Define defaults locally to avoid importing from 'construct.py' which imports 'cdsapi'
+OUT_ALL = "tmp/ERA5_T2M_monthly_1991_2025_chile.nc"
+
+# Simple mocks if needed, or just relying on fallback logic
+DATASET_CLIM = None # _mock_clim_gen()
+DATASET_ERA5 = None # _mock_era5_gen()
 
 def get_local_data():
     """
@@ -100,16 +102,24 @@ async def predict_forecast(request: ForecastRequest):
     
     # 2. Fallback to Mock if Local Data Missing or Failed
     if ds_point is None:
-        # Fallback to Mock
-        ds_point_mock = DATASET_ERA5.sel(latitude=lat, longitude=lon, method="nearest")
-        current_val = float(ds_point_mock["t2m"].isel(time=-1).values)
-        current_date = pd.Timestamp(ds_point_mock["time"].isel(time=-1).values)
+        # Fallback to Mock (Synthetic)
+        if DATASET_ERA5 is not None:
+             ds_point_mock = DATASET_ERA5.sel(latitude=lat, longitude=lon, method="nearest")
+             current_val = float(ds_point_mock["t2m"].isel(time=-1).values)
+             current_date = pd.Timestamp(ds_point_mock["time"].isel(time=-1).values)
+        else:
+             # Pure dummy fallback if no mock available
+             current_val = 290.0
+             current_date = pd.Timestamp.now()
 
     # 3. Get Climatology (Mocked for now)
     try:
-        clim_point = DATASET_CLIM.sel(latitude=lat, longitude=lon, method="nearest")
-        clim_means = clim_point["mean"].values.tolist()
-        clim_stds = clim_point["std"].values.tolist()
+        if DATASET_CLIM is not None:
+             clim_point = DATASET_CLIM.sel(latitude=lat, longitude=lon, method="nearest")
+             clim_means = clim_point["mean"].values.tolist()
+             clim_stds = clim_point["std"].values.tolist()
+        else:
+             raise ValueError("No Climatology Dataset")
     except Exception:
         clim_means = [288.0] * 12
         clim_stds = [2.0] * 12
