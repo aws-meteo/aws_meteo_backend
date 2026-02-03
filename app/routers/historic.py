@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 import logging
 
-from app.lib.historic.extract import extract_points
+from ..lib.historic.extract import extract_points
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

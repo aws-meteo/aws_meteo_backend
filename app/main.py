@@ -10,10 +10,11 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-# Use absolute imports from app package
-from app.s3_helpers import list_runs, list_steps, load_dataset
-from app.routers import forecast
-from app.routers import historic
+# Use relative imports from app package
+from .s3_helpers import list_runs, list_steps, load_dataset
+from .routers import forecast
+from .routers import historic
+from .config import settings
 
 app = FastAPI(
     title="Pangu MVP STI API",
@@ -22,8 +23,7 @@ app = FastAPI(
 )
 
 # CORS Configuration
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
-origins = [origin.strip() for origin in ALLOWED_ORIGINS]
+origins = settings.CORS_ORIGINS
 
 app.add_middleware(
     CORSMiddleware,

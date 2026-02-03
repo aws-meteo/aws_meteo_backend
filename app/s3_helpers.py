@@ -8,17 +8,24 @@ import logging
 import boto3
 import fsspec
 import xarray as xr
+from cachetools import cached, TTLCache
+
+from .config import settings
 
 logger = logging.getLogger(__name__)
 
 # Configuración básica de S3 / índice
-BUCKET = "pangu-mvp-data"
+# Values now come from settings
+BUCKET = settings.S3_BUCKET_NAME
 BASE_PREFIX = "indices/sti/"
 INDEX_NAME = "sti"
-REGION_NAME = "chile"  # usado en el nombre del archivo
+REGION_NAME = "chile"  # This seems to be part of the filename convention, keeping hardcoded for now or moving to config if requested.
+
+# Metadata Cache (TTL 5 mins)
+METADATA_CACHE = TTLCache(maxsize=128, ttl=300)
 
 # Clientes globales (se comparten entre llamadas)
-s3_client = boto3.client("s3")
+s3_client = boto3.client("s3", region_name=settings.AWS_REGION)
 s3_fs = fsspec.filesystem("s3")  # usa IAM role de la instancia
 
 
@@ -48,6 +55,8 @@ def _object_exists(key: str) -> bool:
 # --------------------------------------------------------------------
 # API pública para listar runs / steps
 # --------------------------------------------------------------------
+
+@cached(METADATA_CACHE)
 def list_runs() -> List[str]:
     """
     Lista los 'run=YYYYMMDDHH' leyendo las sub-carpetas (CommonPrefixes).
@@ -75,6 +84,8 @@ def list_runs() -> List[str]:
     return sorted_runs
 
 
+
+@cached(METADATA_CACHE)
 def list_steps(run: str) -> List[str]:
     """
     Lista los 'step=XXX' leyendo las sub-carpetas (CommonPrefixes) dentro de un run.

@@ -3,8 +3,8 @@ from pydantic import BaseModel
 from typing import List, Dict, Any
 import pandas as pd
 import numpy as np
-from app.lib.forecast.engine import forecast_damped_persistence
-from app.lib.tests.conftest_climate import generate_mock_era5_monthly, generate_mock_climatology
+from ..lib.forecast.engine import forecast_damped_persistence
+from ..lib.tests.conftest_climate import generate_mock_era5_monthly, generate_mock_climatology
 
 router = APIRouter(prefix="/forecast", tags=["forecast"])
 
@@ -23,7 +23,7 @@ class ForecastResponse(BaseModel):
     history: List[Dict[str, Any]]
     forecast: List[ForecastStep]
 
-from app.s3_helpers import list_runs, list_steps, load_dataset
+from ..s3_helpers import list_runs, list_steps, load_dataset
 # We keep s3_helpers imports to not break if we revert, but we won't use them for the primary flow
 # from app.lib.indices.construct import OUT_ALL, build_era5_t2m_monthly_chile  <-- REMOVED (cdsapi dependency)
 # from app.lib.tests.conftest_climate import generate_mock_era5_monthly, generate_mock_climatology <-- REMOVED (potential heavy deps)
