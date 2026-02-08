@@ -2,3 +2,9 @@
 __pycache__/*
 .env
 .env.*
+/.opencode
+/.sisyphus
+AGENTS.md
+opencode.jsonc
+/skills
+test_write_permission.txt
