@@ -1,23 +1,23 @@
 {
-    "name": "AWS Meteo Backend Dev",
+    "name": "SbnAI Meteo Backend",
     "build": {
-        "dockerfile": "Dockerfile",
+        "dockerfile": "../Dockerfile",
         "context": ".."
     },
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind",
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+    "forwardPorts": [
+        8000
+    ],
+    "appPort": [
+        8000
+    ],
     "customizations": {
         "vscode": {
             "extensions": [
                 "ms-python.python",
-                "ms-python.vscode-pylance"
-            ],
-            "settings": {
-                "python.defaultInterpreterPath": "/usr/local/bin/python"
-            }
+                "ms-azuretools.vscode-docker"
+            ]
         }
-    },
-    "remoteUser": "appuser",
-    "forwardPorts": [
-        8000
-    ],
-    "postCreateCommand": "pip install -r requirements.txt"
+    }
 }

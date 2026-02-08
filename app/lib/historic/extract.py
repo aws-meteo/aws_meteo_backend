@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, cast
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -42,7 +42,7 @@ def extract_points(
     
     # Detect dataset longitude convention
     ds_lons = ds.coords["longitude"].values
-    ds_is_360 = np.any(ds_lons > 180)
+    ds_is_360 = np.any(ds_lons > 180).item()
     
     # Determine grid resolution for tolerance
     lat_res = np.abs(np.diff(ds.coords["latitude"].values)).mean()
@@ -145,12 +145,17 @@ def extract_points(
             
             ts_list = []
             for date, val in series_clean.items():
+                ts_date = pd.to_datetime(cast(str, date), errors="coerce")
+                if not isinstance(ts_date, pd.Timestamp):
+                    continue
+                timestamp = int(ts_date.timestamp() * 1000)
                 val_out = val
                 if val is not None:
                     val_out = float(val)
                 
                 ts_list.append({
-                    "date": date.strftime("%Y-%m-%d"),
+                    "date": ts_date.strftime("%Y-%m-%d"),
+                    "timestamp": timestamp,
                     "value": val_out
                 })
             

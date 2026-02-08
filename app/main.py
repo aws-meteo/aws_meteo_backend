@@ -175,13 +175,34 @@ def get_subset(
 
     try:
         # Note: variable normalization (var->sti) is now handled in s3_helpers.load_dataset
-        
-        # Recorte Geográfico
-        # DEBUG: User requested "verlo todo" (see everything). Bypassing subset for debugging.
+
+        if lat_min >= lat_max:
+            raise HTTPException(status_code=422, detail="lat_min must be < lat_max")
+        if lon_min >= lon_max:
+            raise HTTPException(status_code=422, detail="lon_min must be < lon_max")
+
         print(f"DEBUG: Dataset loaded. Dimensions: {ds.dims}, Coords: {ds.coords}")
-        
-        # Bypass subset logic - return full dataset (files are small ~400KB)
-        sub = ds["sti"]
+
+        # Geographic subset
+        lat_vals = ds["latitude"].values
+        lon_vals = ds["longitude"].values
+        lat_desc = len(lat_vals) > 1 and float(lat_vals[0]) > float(lat_vals[-1])
+        lon_desc = len(lon_vals) > 1 and float(lon_vals[0]) > float(lon_vals[-1])
+
+        lat_slice = slice(lat_max, lat_min) if lat_desc else slice(lat_min, lat_max)
+        lon_slice = slice(lon_max, lon_min) if lon_desc else slice(lon_min, lon_max)
+
+        sub = ds["sti"].sel(latitude=lat_slice, longitude=lon_slice)
+
+        # If subset is empty (bbox out of grid), return empty arrays
+        if sub.size == 0:
+            return {
+                "run": run,
+                "step": step,
+                "latitudes": [],
+                "longitudes": [],
+                "sti": [],
+            }
         
         # Flattening logic for frontend (Leaflet Heatmap)
         lons_in = sub["longitude"].values
