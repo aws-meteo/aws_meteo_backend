@@ -17,7 +17,9 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build image
-        run: ./scripts/verify_docker_build.sh --build-only
+        run: |
+          chmod +x ./scripts/verify_docker_build.sh
+          ./scripts/verify_docker_build.sh --build-only
 
       - name: Save Docker image
         run: docker save -o image.tar aws-meteo-backend
