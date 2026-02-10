@@ -7,7 +7,7 @@
 - _No tasks_
 
 ## In Progress
-- [ ] Implement GitHub Workflow for Docker CI/CD
+- _No tasks_
 
 ## Review
 - _No tasks_
@@ -15,3 +15,4 @@
 ## Done
 - Create Kanban Board
 - Update Verification Script
+- Implement GitHub Workflow for Docker CI/CD
