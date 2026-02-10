@@ -47,4 +47,6 @@ jobs:
         run: docker load -i image.tar
 
       - name: Run tests
-        run: ./scripts/verify_docker_build.sh --test-only
+        run: |
+          chmod +x ./scripts/verify_docker_build.sh
+          ./scripts/verify_docker_build.sh --test-only
