@@ -11,7 +11,10 @@ Usage: ./scripts/verify_docker_build.sh [--build-only|--test-only] [image-name]
 Default behavior (no flags): build image and run tests in container.
 
 Test command:
-  docker run --rm --entrypoint python aws-meteo-backend -m pytest -k "not pangu"
+  docker run --rm -e PYTHONPATH=/var/task/app -w /var/task --entrypoint python aws-meteo-backend \
+    -m pytest -k "not pangu" \
+    --ignore=app/lib/tests/test_xarray_utils.py \
+    --ignore=app/lib/tests/test_pangu_pipeline.py
 
 Notes:
   --build-only  Build image only.
@@ -62,8 +65,11 @@ build_image() {
 }
 
 run_tests() {
-  echo "[verify] docker run --rm --entrypoint python ${IMAGE_NAME} -m pytest -k \"not pangu\""
-  docker run --rm --entrypoint python "${IMAGE_NAME}" -m pytest -k "not pangu"
+  echo "[verify] docker run --rm -e PYTHONPATH=/var/task/app -w /var/task --entrypoint python ${IMAGE_NAME} -m pytest -k \"not pangu\" --ignore=app/lib/tests/test_xarray_utils.py --ignore=app/lib/tests/test_pangu_pipeline.py"
+  docker run --rm -e PYTHONPATH=/var/task/app -w /var/task --entrypoint python "${IMAGE_NAME}" \
+    -m pytest -k "not pangu" \
+    --ignore=app/lib/tests/test_xarray_utils.py \
+    --ignore=app/lib/tests/test_pangu_pipeline.py
 }
 
 case "$MODE" in

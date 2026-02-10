@@ -1,16 +1,17 @@
 # Kanban
 
 ## Backlog
-- [ ] Implement GitHub Workflow for Docker CI/CD
+- _No tasks_
 
 ## To Do
 - _No tasks_
 
 ## In Progress
-- _No tasks_
+- [ ] Implement GitHub Workflow for Docker CI/CD
 
 ## Review
 - _No tasks_
 
 ## Done
-- _No tasks_
+- Create Kanban Board
+- Update Verification Script
