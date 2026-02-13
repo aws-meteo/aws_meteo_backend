@@ -7,12 +7,13 @@ import os
 # Add project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
-# Import imported get_subset. Since we are patching "app.main.load_dataset", 
+# Import imported get_subset. Since we are patching "app.routers.sti.load_dataset", 
 # we don't worry about previous imports of s3_helpers.
-from app.main import get_subset
+from app.routers.sti import get_subset
 
 class TestSTIEndpoint(unittest.TestCase):
-    @patch("app.main.load_dataset")
+    @patch("app.routers.sti.load_dataset")
+
     def test_get_subset_flattened_structure(self, mock_load_dataset):
         """
         Verify that get_subset returns flattened 1D arrays
@@ -32,12 +33,25 @@ class TestSTIEndpoint(unittest.TestCase):
         mock_ds.data_vars = ["sti"]
 
         # Setup mock_sub behavior
-        mock_sub.__contains__.side_effect = lambda key: key in ["latitude", "longitude"]
         mock_sub.values = sti_values
         mock_sub.__getitem__.side_effect = lambda key: MagicMock(values=lats_input) if key == "latitude" else MagicMock(values=lons_input)
+        mock_sub.sel.return_value = mock_sub  # For simplicity, sel returns itself in this mock
         
-        # Mock ds['sti'] to return mock_sub
-        mock_ds.__getitem__.return_value = mock_sub
+        # Mock ds['sti'], ds['latitude'], ds['longitude']
+        def ds_getitem(key):
+            if key == "sti":
+                return mock_sub
+            if key == "latitude":
+                return MagicMock(values=lats_input)
+            if key == "longitude":
+                return MagicMock(values=lons_input)
+            return MagicMock()
+            
+        mock_ds.__getitem__.side_effect = ds_getitem
+        mock_ds.data_vars = ["sti"]
+        mock_ds.dims = {"latitude": 2, "longitude": 2}
+        mock_ds.coords = {"latitude": lats_input, "longitude": lons_input}
+
         
         # Configure the patch
         # Note: get_subset calls load_dataset(run, step)
