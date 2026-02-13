@@ -1,6 +1,7 @@
 import sys
 import os
 import boto3
+import argparse
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError, EndpointConnectionError, ClientError
 
 # Add the current directory to sys.path to import app.config
@@ -71,4 +72,7 @@ def verify_s3():
         print(f"ERROR: An unexpected error occurred: {e}")
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Verify connectivity to AWS S3 and check access to the configured bucket and prefix.")
+    args = parser.parse_args()
+    
     verify_s3()

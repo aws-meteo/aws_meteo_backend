@@ -43,7 +43,23 @@ To run the containerized backend locally while allowing it to access S3 using yo
 - **Pass-through Logic**: By setting `AWS_PROFILE`, the `boto3` client inside the container will look for the corresponding credentials in the mounted volume.
 
 **Note**: Ensure your local user has the necessary IAM permissions to list and get objects from the target S3 bucket.
-
-## Dependencies
++
++## Lambda Deployment
++
++To deploy the built image to AWS ECR and update the Lambda function, use the deployment script:
++
++```bash
++./scripts/deploy_lambda.sh
++```
++
++This script handles:
++- ECR Login.
++- Tagging the local `aws-meteo-backend:latest` image.
++- Pushing the image to ECR.
++- Updating the Lambda function code to use the new image.
++
++Use `--dry-run` to see the commands without executing them.
++
+ ## Dependencies
 
 - **`h5netcdf`**: This library is now a required dependency for loading NetCDF files. It is used as the engine in `xarray.open_dataset` for better performance and compatibility with HDF5-based NetCDF4 files in the container environment.
