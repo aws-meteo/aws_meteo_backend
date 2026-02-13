@@ -21,3 +21,5 @@
 - Refactor STI Endpoints to Router
 - Split S3 Integration Logic
 - Add Moto Tests for S3 Integration
+- Create Lambda Deployment Script
+- Final QA and Documentation Cleanup
