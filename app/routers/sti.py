@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 
 # Use relative imports
-from ..s3_helpers import list_runs, list_steps, load_dataset
+from ..services.sti_service import list_runs, list_steps, load_dataset
 
 router = APIRouter(prefix="/sti", tags=["STI"])
 
